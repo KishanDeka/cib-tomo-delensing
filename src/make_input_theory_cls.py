@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import simps
+from scipy.integrate import simpson
 import camb
 import pandas as pd
 from camb import model,initialpower
@@ -18,7 +18,7 @@ def Dz(z,gamma_0,gamma_a):
     gamma = gamma_0 + gamma_a*z/(1.+z)
     z_integral = np.linspace(0.,z,500)
     integrand_dz = (results.get_Omega('cdm',z=z_integral)+results.get_Omega('baryon',z=z_integral)+results.get_Omega('neutrino',z=z_integral))**gamma/(1.+z_integral)
-    return np.exp(-simps(integrand_dz,z_integral))
+    return np.exp(-simpson(integrand_dz,x=z_integral))
 
 
 def lens_ker(chis,zs,H_z):
@@ -31,7 +31,7 @@ def gal_ker(dist,zs,alpha,bias,chis,H_z):
     
     W_g = np.zeros(shape=(1,len(zs)))
     	
-    dist = dist/simps(dist,zs)
+    dist = dist/simpson(dist,x=zs)
     W_g[0,:] = bias*dist
     
     '''
@@ -43,7 +43,7 @@ def gal_ker(dist,zs,alpha,bias,chis,H_z):
 	    dist_intgrl = dist[i:]
     
 	    integrand = (1.-ch_intgrl[0]/ch_intgrl)*(alpha-1.)*dist_intgrl
-	    val_intgrl = simps(y=integrand,x=zs_intgrl)
+	    val_intgrl = simpson(y=integrand,x=zs_intgrl)
 
 	    W_g[1,i] = (3.*Om0*(H0**2)*chis[i]*(1.+zs[i]))*val_intgrl/(2.*c*H_z[i])
 	 '''
@@ -60,7 +60,7 @@ def cib_kernel(dist,zs):
     
     W_cib = np.zeros(shape=(len(zs)))
     	
-    dist = dist/simps(dist,zs)
+    dist = dist/simpson(dist,x=zs)
     W_cib = bias*dist
     
     return W_cib
@@ -133,7 +133,7 @@ pars = camb.set_params(WantTransfer=True,NonLinear='NonLinear_none',num_nu_massl
 
 pars.Transfer.high_precision=True
 pars.Transfer.kmax=1.3464234
-pars.InitPower.set_params(parameterization=1,ns=0.9660499,As=2.100549e-09)
+pars.InitPower.set_params(parameterization=1,nt=0,ns=0.9660499,As=2.100549e-09)
 pars.InitPower.At=0.0
 pars.Reion.helium_delta_redshift = 0.5
 pars.Reion.helium_redshiftstart = 6.0
@@ -178,7 +178,7 @@ PK = camb.get_matter_power_interpolator(pars,nonlinear=True,hubble_units=False,k
 '''
 for ii in range(zbins_start,zbins_end+1):
     print(ii)
-    meanz[ii-zbins_start] = simps(gal_dist[:,0]*(gal_dist[:,ii-zbins_start+1]*chis)**2/H_z,gal_dist[:,0])/simps((gal_dist[:,ii-zbins_start+1]*chis)**2/H_z,gal_dist[:,0])
+    meanz[ii-zbins_start] = simpson(gal_dist[:,0]*(gal_dist[:,ii-zbins_start+1]*chis)**2/H_z,x=gal_dist[:,0])/simpson((gal_dist[:,ii-zbins_start+1]*chis)**2/H_z,x=gal_dist[:,0])
     gal_bias[ii-zbins_start] = bias/Dz(meanz[ii-zbins_start],gamma_0,gamma_a)
 
 np.savetxt(outdir_eff_bias+'/effective_bias.txt',np.array([meanz,gal_bias]).T)
@@ -520,7 +520,7 @@ for ii in range(zbins_start,zbins_end+2):
         outfile_cl = 'noise_cls/nl_cib_lmax_'+str(lmax)+'_bin_'+str(ii)+'.dat'
         cl = np.zeros(shape=(lmax-lmin+1))
         
-        norm_Wcib = Wcib / simps(b_dIdz[1:-1] * cib_dist[1:-1,ii-zbins_start+1], cib_dist[1:-1,0])
+        norm_Wcib = Wcib / simpson(b_dIdz[1:-1] * cib_dist[1:-1,ii-zbins_start+1], x=cib_dist[1:-1,0])
         shot_noise_545 = 1690 * 1e-12  # convert from Jy^2 to MJy^2
         for l in range(lmin, lmax+1):
             cl[l] = np.dot(dz, norm_Wcib*shot_noise_545)
